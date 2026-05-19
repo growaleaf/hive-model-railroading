@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Model Railroad Minimum Curve Radius Calculator — Hive Model Railroading</title>
+<meta name="description" content="Calculate minimum curve radius by scale, longest car length, and operating speed. For HO, N, O scale layouts.">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<!-- GA4: G-FMMGEHVXNV -->
+<style>
+:root { --bg: #f0ecdf; --ink: #1a1810; --soft: #4a4530; --accent: #8a4a2a; --warm: #4a5a3a; --rule: #d8d2bc; --card: #fff; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 16px; }
+body { font-family: Georgia, serif; background: var(--bg); color: var(--ink); line-height: 1.5; }
+header { padding: 1.25rem; max-width: 760px; margin: 0 auto; border-bottom: 1px solid var(--rule); }
+.brand-back { color: var(--soft); text-decoration: none; font-size: 0.9rem; }
+main { max-width: 760px; margin: 0 auto; padding: 2rem 1.25rem 4rem; }
+h1 { font-size: 1.7rem; margin-bottom: 0.5rem; }
+.sub { color: var(--soft); margin-bottom: 2rem; }
+.panel { background: var(--card); border: 1px solid var(--rule); border-radius: 4px; padding: 1.5rem; margin-bottom: 1.5rem; }
+.field-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0.85rem; margin-bottom: 1rem; }
+.field label { display: block; font-size: 0.85rem; color: var(--soft); margin-bottom: 0.3rem; font-weight: 600; }
+.field input, .field select { width: 100%; padding: 0.65rem 0.75rem; border: 1px solid var(--rule); border-radius: 4px; font-size: 1rem; font-family: inherit; background: var(--bg); }
+button.go { background: var(--accent); color: #fff; border: none; padding: 0.85rem 1.5rem; font-size: 1rem; font-weight: 700; border-radius: 4px; cursor: pointer; margin-top: 0.5rem; }
+.results { background: #fff; border-left: 3px solid var(--warm); padding: 1.5rem; border-radius: 4px; margin-top: 1.5rem; display: none; }
+.results.visible { display: block; }
+.big { text-align: center; padding: 1rem 0; }
+.big .value { font-size: 2.2rem; font-weight: 700; color: var(--accent); }
+.big .label { font-size: 0.95rem; color: var(--soft); margin-top: 0.25rem; }
+.row { display: flex; justify-content: space-between; padding: 0.55rem 0; border-bottom: 1px solid var(--rule); font-size: 0.95rem; }
+.row:last-child { border-bottom: none; }
+.row .l { color: var(--soft); }
+.row .v { font-weight: 600; }
+.note { background: #f5f1dc; padding: 1rem 1.25rem; border-radius: 4px; margin-top: 1.25rem; color: var(--soft); font-size: 0.9rem; }
+.note strong { color: var(--ink); }
+.affiliate { background: #fff; border: 1px solid var(--rule); padding: 1.25rem; border-radius: 4px; margin-top: 1.5rem; }
+.affiliate a { color: var(--accent); font-weight: 700; }
+.affiliate .disc { font-size: 0.85rem; color: var(--soft); margin-top: 0.6rem; }
+footer { max-width: 760px; margin: 3rem auto 2rem; padding: 1.5rem 1.25rem 0; border-top: 1px solid var(--rule); font-size: 0.9rem; color: var(--soft); text-align: center; }
+</style>
+</head>
+<body>
+<header>
+  <a href="/" class="brand-back">← Hive Model Railroading</a>
+</header>
+<main>
+
+<h1>Minimum Curve Radius Calculator</h1>
+<p class="sub">Recommended minimum radius by scale, longest car (or longest wheelbase locomotive), and operating speed.</p>
+
+<div class="panel">
+
+  <div class="field-grid">
+    <div class="field">
+      <label>Scale</label>
+      <select id="scale">
+        <option value="z">Z (1:220)</option>
+        <option value="n">N (1:160)</option>
+        <option value="tt">TT (1:120)</option>
+        <option value="ho" selected>HO (1:87)</option>
+        <option value="s">S (1:64)</option>
+        <option value="o">O (1:48)</option>
+        <option value="g">G (1:22.5)</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Longest car length (prototype scale, feet)</label>
+      <input type="number" id="car_length" value="60" min="20" max="90" step="1">
+    </div>
+    <div class="field">
+      <label>Operating style</label>
+      <select id="style">
+        <option value="tight">Tight (4-axle diesels, short cars only)</option>
+        <option value="standard" selected>Standard (modern freight up to 60-ft)</option>
+        <option value="mainline">Mainline (6-axle diesels, 89-ft auto racks)</option>
+        <option value="reliable">Reliable operation at higher speed</option>
+      </select>
+    </div>
+  </div>
+
+  <button class="go" onclick="calc()">Calculate minimum radius</button>
+
+  <div class="results" id="results"></div>
+
+</div>
+
+</main>
+<footer>
+  <p>Part of <a href="https://thehivemakes.com" style="color: var(--soft);">the Hive</a>. Made in Wilmington, Delaware.</p>
+</footer>
+
+<script>
+function calc() {
+  const scale = document.getElementById("scale").value;
+  const car_length_ft = parseFloat(document.getElementById("car_length").value);
+  const style = document.getElementById("style").value;
+
+  // Scale ratios
+  const SCALE_RATIO = { z: 220, n: 160, tt: 120, ho: 87, s: 64, o: 48, g: 22.5 };
+  const SCALE_NAME = { z: "Z", n: "N", tt: "TT", ho: "HO", s: "S", o: "O", g: "G" };
+
+  // Convert car length from feet to inches in scale
+  const car_inches_real = car_length_ft * 12;
+  const car_inches_scale = car_inches_real / SCALE_RATIO[scale];
+
+  // Rule of thumb: minimum radius = 3.5 × car length for tight, 4.5 × for standard, 6 × for mainline, 8 × for high-speed
+  const MULT = { tight: 3.5, standard: 4.5, mainline: 6, reliable: 8 };
+  const radius_inches = car_inches_scale * MULT[style];
+
+  // Convert to standard track radii (NMRA / commercial)
+  // For HO: typical track sets are 15", 18", 22", 26", 28", 30", 32", 34", 36", 38", 42", 48"
+  // For N: typical 9.75", 11", 13.75", 19", 22.5", 26.25"
+  // For O: typical 27", 31", 36", 42", 48", 54", 60", 72"
+
+  const STD_RADII = {
+    z: [6.7, 7.7, 9.4, 12, 14],
+    n: [9.75, 11, 13.75, 19, 22.5, 26.25, 33],
+    tt: [11, 13.75, 19, 22.5, 26.25, 33],
+    ho: [15, 18, 22, 26, 28, 30, 32, 34, 36, 38, 42, 48],
+    s: [20, 24, 30, 36, 42, 48],
+    o: [27, 31, 36, 42, 48, 54, 60, 72],
+    g: [48, 60, 72, 96, 120]
+  };
+
+  // Find smallest standard radius that meets or exceeds calculated minimum
+  const stds = STD_RADII[scale];
+  const recommended = stds.find(r => r >= radius_inches) || stds[stds.length - 1];
+
+  document.getElementById("results").innerHTML = `
+    <div class="big">
+      <div class="value">${radius_inches.toFixed(1)}" minimum</div>
+      <div class="label">Recommended commercial radius: ${recommended}"</div>
+    </div>
+    <div class="row"><span class="l">Scale</span><span class="v">${SCALE_NAME[scale]} (1:${SCALE_RATIO[scale]})</span></div>
+    <div class="row"><span class="l">Longest car (prototype)</span><span class="v">${car_length_ft} ft</span></div>
+    <div class="row"><span class="l">Longest car (in scale)</span><span class="v">${car_inches_scale.toFixed(2)}"</span></div>
+    <div class="row"><span class="l">Multiplier (operating style)</span><span class="v">${MULT[style]}× car length</span></div>
+    <div class="row"><span class="l">Calculated minimum radius</span><span class="v">${radius_inches.toFixed(1)}"</span></div>
+    <div class="row"><span class="l">Diameter (loop space needed)</span><span class="v">${(radius_inches * 2).toFixed(1)}" (~${(radius_inches * 2 / 12).toFixed(1)} ft)</span></div>
+    <div class="note">
+      <strong>How to read this:</strong> Commercial sectional track is sold in specific radii; the recommended above is the next size up that satisfies your minimum. Tighter curves cost less space but limit what locomotives you can run. Six-axle diesels (SD40-2, AC4400) need 24"+ on HO. 89-ft auto racks need 30"+ on HO. If you're planning a mainline layout, aim for the next size larger than the minimum; the layout looks more realistic and runs more reliably.
+    </div>
+    <div class="affiliate">
+      <strong>Track and tools on eBay:</strong><br>
+      <a href="https://www.ebay.com/sch/i.html?_nkw=atlas+code+83+track&campid=5339144864" rel="sponsored" target="_blank">Atlas Code 83 flex track on eBay</a><br>
+      <a href="https://www.ebay.com/sch/i.html?_nkw=peco+code+83+turnouts&campid=5339144864" rel="sponsored" target="_blank">Peco Code 83 turnouts on eBay</a><br>
+      <a href="https://www.ebay.com/sch/i.html?_nkw=nmra+gauge&campid=5339144864" rel="sponsored" target="_blank">NMRA standards gauges on eBay</a><br>
+      <a href="https://www.ebay.com/sch/i.html?_nkw=micro+engineering+code+83&campid=5339144864" rel="sponsored" target="_blank">Micro Engineering Code 83 on eBay</a>
+      <div class="disc">eBay Partner Network affiliate links. Small commission, doesn't change your price. Used Atlas track on eBay is an excellent value; the gauge holds. Brand-new no-name Code 83 from unknown brands has occasional gauge problems out of the box, so save the dollar and buy known.</div>
+    </div>
+  `;
+  document.getElementById("results").classList.add("visible");
+}
+</script>
+</body>
+</html>
